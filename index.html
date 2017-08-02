@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>React Todo List</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://fb.me/react-0.14.7.js"></script>
+  <script src="https://fb.me/react-dom-0.14.7.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.25/browser.min.js"></script>
+<script src="https://cdn.firebase.com/js/client/1.0.17/firebase.js"></script>
+<style>
+body{
+  margin-top: 30px;
+}
+a.delete{
+  color:red;
+}
+</style>
+
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div col="col-md-12">
+        <div id="app"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/babel">
+
+  var App=React.createClass({
+
+getInitialState:function(){
+  return{
+    text: '',
+    isEdit:0,
+    todos: []
+  }
+},
+componentWillMount:function(){
+  this.firebaseref=new Firebase('https://todolist-d88d3.firebaseio.com/todos');
+  var that=this;
+  this.firebaseref.once("value",function(snapshot){
+    var todos=[];
+    snapshot.forEach(function(data){
+      var todo={
+        id:data.val().id,
+        text:data.val().text
+      }
+      todos.push(todo);
+      that.setState({todos:todos});
+    });
+  });
+
+
+},
+    render:function(){
+      return(
+        <div>
+        <TodoForm
+         {...this.state}
+         onTodoUpdate={this.handleTodoupdate}
+         changeText={this.handlechangeText}
+        onTodoAdd={this.handleTodoAdd}/>
+        <TodoList
+        {...this.state}
+        todos={this.state.todos}
+        editTodo={this.handleTodoEdit}
+        deleteTodo={this.handleTodoDelete}/>
+      </div>
+      )
+    },
+    handleTodoAdd:function (text) {
+      var newTodo={
+        id:this.state.todos.length+1,
+        text:text
+      }
+      this.firebaseref.push(newTodo);
+      this.setState({todos:this.state.todos.concat(newTodo)});
+    },
+    handleTodoDelete:function (todo) {
+
+      var todos=this.state.todos;
+      for(var i=0;i<todos.length;i++){
+        if(todos[i].id==todo.id){
+          todos.splice(i,1);
+          console.log(todo);
+//  this.firebaseref.child(todo.i).remove();
+        }
+      }
+
+  //this.firebaseref.child(todo).remove();
+
+      this.setState({todos:todos});
+    },
+    handleTodoEdit:function(todo){
+      this.setState({
+        text:todo.text,
+        isEdit:todo.id
+      });
+    },
+    handlechangeText:function(text){
+      this.setState({text:text});
+    },
+    handleTodoupdate:function(todo) {
+      var todos=this.state.todos;
+      for(var i=0;i<todos.length;i++){
+        if(todos[i].id==todo.id){
+          todos.splice(i,1);
+        }
+    }
+    todos.push(todo);
+    this.setState({todos:todos});
+  },
+  });
+  var TodoForm=React.createClass({
+    render:function(){
+      return(
+        <div>
+      <form onSubmit={this.onSubmit}>
+      <div className="form-group">
+      <label>Todo text</label>
+      <input type="text" ref="text" value={this.props.text} onChange={this.onChange} className="form-control"/>
+      </div>
+      </form>
+      </div>
+      )
+    },
+    onChange: function(e){
+      this.props.changeText(e.target.value);
+    },
+    onSubmit:function(e){
+      e.preventDefault();
+      var text=this.refs.text.value.trim();
+      if(!text){
+        alert('please enter a todo');
+        return;
+      }
+      if(this.props.isEdit){
+        var updatedTodo={
+          id:this.props.isEdit,
+          text:text
+        }
+        this.props.onTodoUpdate(updatedTodo);
+      }else{
+        this.props.onTodoAdd(text);
+      }
+
+      this.refs.text.value='';
+    }
+  });
+  var TodoList=React.createClass({
+    render:function(){
+      return(
+        <ul>
+        {
+               this.props.todos.map(todo =>{
+                 return <li className="list-group-item" todo={todo} key={todo.id}><span onClick={this.editTodo.bind(this,todo)}>
+                 {todo.text}</span><a onClick={this.onDelete.bind(this,todo)} className="delete" href="#">x</a></li>
+               })
+        }
+        </ul>
+      )
+    },
+    onDelete:function(todo){
+      this.props.deleteTodo(todo);
+    },
+    editTodo:function(todo) {
+      this.props.editTodo(todo);
+    }
+  });
+  ReactDOM.render(
+    <App/>,
+    document.getElementById('app')
+  );
+
+
+  // var App=React.createClass({
+  //
+  //   getInitialState:function(){
+  //     return{
+
+  //       text:'Hello World'
+  //     }
+  //   },
+  //    render:function(){
+  //     return(
+  //       <div>
+  //       <h1>{this.state.text}</h1>
+  //       <form>
+  //       <input type="text" onChange={this.changeText} value={this.state.text}/>
+  //        <button className="btn-btn-primary">click </button>
+  //       </form>
+  //       <br/>
+  //       <ComponentTwo text={this.state.text} />
+  //         </div>
+  //     )
+  //   },
+  //   changeText:function(e) {
+  //     this.setState({text: e.target.value});
+  //   }
+  // });
+  //
+  // var ComponentTwo=React.createClass({
+  //   render:function(){
+  //     return(
+  //       <div>
+  //     {this.props.text}
+  //       </div>
+  //     );
+  //   }
+  // });
+  //
+  // ReactDOM.render(
+  //   <App/>,
+  //    document.getElementById('app')
+  //  );
+
+
+
+
+
+
+  // var jumbotron=React.createClass({
+  //   render:function(){
+  //     return(
+  //       <div className="jumbotron">
+  //   <h1>Hello, world!</h1>
+  //   <p>This is a simple hero unit, a simple jumbotron-style component for
+  //   calling extra attention to featured content or information.</p>
+  //   <p><a className="btn btn-primary btn-lg" href="#" role="button">Learn more</a></p>
+  // </div>
+  //     )
+  //   }
+  // });
+  // ReactDOM.render(
+  //   <jumbotron/>,
+  //   document.getElementById('jumbotron')
+  // );
+
+  </script>
+</body>
+</html>
